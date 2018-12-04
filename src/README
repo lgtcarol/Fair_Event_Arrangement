@@ -1,0 +1,15 @@
+src为../
+    辅助变量 .pkl
+    README进展记录
+    便于查看txt: AnalyData.py
+    变量读取保存：Save_Load_info.py
+    考虑过的统计因素：Feature_Extract.py
+lgt_v1为~/
+    中心处理：user_deal.py, event_deal.py, group_deal.py
+    交互合并处理：user_group.py, user_event.py
+tmp_vars为../tmp_vars
+    每日有效变量读写：graph和vars
+ForTest为../ForTest
+    构图过程中的graph和vars保存
+    test读取效果
+    NOTE：使用时结合AnalyData.py, CreateNetwork.py和Save_Load_info.py

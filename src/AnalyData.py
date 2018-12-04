@@ -31,7 +31,9 @@ for line in user_groups:
     user_groups_raw[read_line[0]] = read_line[1:]
 user_groups.close()
 
-'''读取events.txt'''
+'''读取events.txt
+   该文件可以以DataFrame形式读取，就看后面需求，暂且按照数据格式统一
+'''
 events = open("dataset/events.txt", "r")
 events_raw = defaultdict(list)
 for line in events:

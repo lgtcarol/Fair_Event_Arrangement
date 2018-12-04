@@ -8,16 +8,16 @@ pickle.dump(events_dealt, trainG_vars,True)
 pickle.dump(event_users_raw, trainG_vars,True)
 trainG_vars.close()
 
-trainG_vars = open("src/trainG_Gvars_1112.pkl", 'wb')
+trainG_vars = open("src/trainG_Gvars_1113.pkl", 'wb')
 pickle.dump(trainG_U, trainG_vars,True)
 pickle.dump(trainG_G, trainG_vars,True)
 pickle.dump(trainG_E, trainG_vars,True)
 pickle.dump(edge_ge, trainG_vars,True)
 pickle.dump(edge_gu, trainG_vars,True)
 pickle.dump(edge_ue, trainG_vars,True)
+pickle.dump(edge_eu, trainG_vars,True)
+pickle.dump(edge_ug, trainG_vars,True)
 trainG_vars.close()
-
-nx.write_gpickle(trainG,"src/trainG_1106.gpickle")
 
 nx.write_gpickle(trainG,"src/trainG_1106.gpickle")
 trainG_redunt = open("src/trainG_redunt_1106.pkl", 'wb')
@@ -37,6 +37,11 @@ pickle.dump(events_dealt_td, testG_vars,True)
 pickle.dump(event_users_raw_td, testG_vars,True)
 testG_vars.close()
 
+df_var = open('src/ltmp_vars/egdf_var.pkl', 'wb')
+pickle.dump(zip_event_df, df_var, True)
+pickle.dump(group_df, df_var, True)
+df_var.close()
+
 《CreateNetwork.py》中完成网络的建立，下面为将其固话到文件
 nx.write_gpickle(testG,"testG_1106.gpickle")
 
@@ -51,13 +56,17 @@ testG_redundant.close()
 
 import pickle
 import networkx as nx
-import matplotlib.pyplot as plt
+import pandas as pd
+import numpy as np
+from collections import defaultdict
+from datetime import date
+from Feature_Extract import *
 
 '''所有关于文件的写入和pkl读写'''
 
 '''train dataset'''
 #原始变量
-trainG_vars = open("src/trainG_vars_1106.pkl", 'rb')
+trainG_vars = open("src/ltmp_vars/trainG_vars_1106.pkl", 'rb')
 user_tags_raw = pickle.load(trainG_vars)
 group_tags_raw = pickle.load(trainG_vars)
 user_groups_raw = pickle.load(trainG_vars)
@@ -66,15 +75,27 @@ events_dealt = pickle.load(trainG_vars)
 event_users_raw = pickle.load(trainG_vars)
 trainG_vars.close()
 #graph变量
-trainG_Gvars = open("src/trainG_Gvars_1112.pkl", 'rb')
+trainG_Gvars = open("src/ltmp_vars/trainG_Gvars_1113.pkl", 'rb')
 trainG_U = pickle.load(trainG_Gvars)
 trainG_G = pickle.load(trainG_Gvars)
 trainG_E = pickle.load(trainG_Gvars)
 edge_ge = pickle.load(trainG_Gvars)
 edge_gu = pickle.load(trainG_Gvars)
 edge_ue = pickle.load(trainG_Gvars)
+edge_eu = pickle.load(trainG_Gvars)
+edge_ug = pickle.load(trainG_Gvars)
+trainG_Gvars.close()
 #整张graph
-trainG = nx.read_gpickle("src/trainG_1106.gpickle")
+trainG = nx.read_gpickle("src/ltmp_vars/trainG_1113.gpickle")
+#zip_event_df, group_df <2018/12/3>
+#user_label_df 总是MemoryError
+df_var = open('src/ltmp_vars/df_var.pkl', 'rb')
+zip_event_df = pickle.load(df_var)
+group_df = pickle.load(df_var)
+df_var.close()
+#检查下user重复 写变量，读出来验证，然后考虑拼凑（之后考虑one-hot）
+
+
 trainG_redunt = open("src/trainG_redunt_1106.pkl", 'rb')
 #冗余变量
 redunt_ugu = pickle.load(trainG_redunt)
@@ -140,20 +161,27 @@ for g in list(trainG.nodes()):
                 edge_ge[g].append(item)
             else:
                 continue
-edge_eu = defaultdict(list)
+
+
+u = defaultdict(list)
 for e in trainG.nodes():
     if trainG.nodes[e]['node_type'] == 'E':
         for u in trainG.neighbors(e):
             if trainG.nodes[u]['node_type'] == 'U':
                 edge_eu[e].append(u)
-#更好的是建立edge_ue
+
+#edge_ue,edge_ug
 edge_ue = defaultdict(list) #发现有1906个用户没有参加一个event
+edge_ug = defaultdict(list)
 for u in trainG.nodes():
     if trainG.nodes[u]['node_type'] == 'U':
-        for e in trainG.neighbors(u):
-            if trainG.nodes[e]['node_type'] == 'E':
-                edge_ue[u].append(e)
-
+        for item in trainG.neighbors(u):
+            if trainG.nodes[item]['node_type'] == 'E':
+                edge_ue[u].append(item)
+            elif trainG.nodes[item]['node_type'] == 'G':
+                edge_ug[u].append(item)
+            else:
+                continue
 
 
 out_gu = open("dataset/trainG_gu.txt", "w")
@@ -196,7 +224,48 @@ def save_edeges(fpname, edges_var):
             out.write(' ')
         out.write('\n')
     out.close()
-save_edeges("dataset/trainG_ue.txt", "w")
+save_edeges("dataset/trainG_ue.txt", edge_ue)
+save_edeges("dataset/trainG_ug.txt", edge_ug)
+
+
+'''11/13 为event融合tag前'''
+nx.write_gpickle(trainG,"src/trainG_1113.gpickle")
+
+'''11/14 融合event_tag & 生成dataframe'''
+group_df.to_csv("dataset/group_df.csv", encoding="utf-8")
+#虽函数名不太符合，但要实现的功能一样
+save_edeges("dataset/rich_gtags.txt", rich_gtags)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 '''test dataset'''
 trainG_vars = open("src/testG_vars_1106.pkl", 'rb')

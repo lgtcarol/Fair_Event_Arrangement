@@ -8,6 +8,8 @@
 from collections import defaultdict
 
 import numpy as np
+from Feature_Extract import *
+
 user_tags = open("dataset/user_tags.txt", "r")
 user_tags_raw = []
 for line in user_tags:
@@ -119,6 +121,26 @@ for u in trainG.nodes():
                 break
         if flag == False:
             i += 1
+
+'''11/14 一些统计'''
+
+t = 0
+for i in repeat_v:
+    if i > 0.5:
+        t += 1
+
+t = 0
+num_gu = 0
+for g in list(trainG.nodes()):
+    if trainG.nodes[g]['node_type'] == 'G':
+        for item in list(trainG.neighbors(g)):
+            if trainG.nodes[item]['node_type'] == 'U' :
+                num_gu += 1
+                if trainG[g][item]['weight']>0:
+                    t += 1
+
+
+
 
 
 
