@@ -37,9 +37,10 @@ pickle.dump(events_dealt_td, testG_vars,True)
 pickle.dump(event_users_raw_td, testG_vars,True)
 testG_vars.close()
 
-df_var = open('src/ltmp_vars/egdf_var.pkl', 'wb')
+df_var = open('src/ltmp_vars/uegdf_var.pkl', 'wb')
 pickle.dump(zip_event_df, df_var, True)
 pickle.dump(group_df, df_var, True)
+pickle.dump(ueg_df, df_var,True)
 df_var.close()
 
 《CreateNetwork.py》中完成网络的建立，下面为将其固话到文件
@@ -88,10 +89,10 @@ trainG_Gvars.close()
 #整张graph
 trainG = nx.read_gpickle("src/ltmp_vars/trainG_1113.gpickle")
 #zip_event_df, group_df <2018/12/3>
-#user_label_df 总是MemoryError
-df_var = open('src/ltmp_vars/df_var.pkl', 'rb')
+df_var = open('src/ltmp_vars/uegdf_var.pkl', 'rb')
 zip_event_df = pickle.load(df_var)
 group_df = pickle.load(df_var)
+ueg_df = pickle.load(df_var)
 df_var.close()
 #检查下user重复 写变量，读出来验证，然后考虑拼凑（之后考虑one-hot）
 
