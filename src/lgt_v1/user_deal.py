@@ -37,7 +37,7 @@ class User(object):
                 label_mat[row_index, col_index] = 1
                 row_index += 1
         print("row_index = %d"%row_index)
-        #2. 每个user参加的事件完成标记
+        #categories实际只会用到7192
         column = ['catg_' + str(i) for i in range(1, 7203)]
         user_label_df = pd.DataFrame(label_mat, columns=column)
         user_index = []
@@ -64,7 +64,15 @@ class User(object):
         # 直接merge试试,之后再考虑删除event_id，因为拼接label矩阵会用
         ue_df = pd.merge(uecol_df,zip_event_df)
         ueg_df = pd.merge(ue_df, group_df, left_on=['group_id'])#由于左比右多'G_376'导致最终为13026条,26列
+
+
+        '''
+        不考虑内存时的流利做法
         grouped = ueg_df.groupby(['user_id','group_id', 'venue_id', 'weekday','clock']) #可形成94332条独立的参与信息
+        one_hot = pd.get_dummies(ueg_df['category_id'])
+        column = ['c_' + str(i) for i in range(1, 7193)]
+        one_hot.to_csv("one_hot.csv", encoding="utf-8")
+        '''
         x = ueg_df['category_id'].copy()
         del ueg_df['category_id']
         ueg_df['category_id'] = x
