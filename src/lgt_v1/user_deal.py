@@ -63,8 +63,14 @@ class User(object):
         uecol_df = pd.DataFrame(data, columns=['user_id', 'event_id'])
         # 直接merge试试,之后再考虑删除event_id，因为拼接label矩阵会用
         ue_df = pd.merge(uecol_df,zip_event_df)
-        ueg_df = pd.merge(ue_df, group_df, left_on=['group_id'])#由于左比右多'G_376'导致最终为13026条
+        ueg_df = pd.merge(ue_df, group_df, left_on=['group_id'])#由于左比右多'G_376'导致最终为13026条,26列
+        grouped = ueg_df.groupby(['user_id','group_id', 'venue_id', 'weekday','clock']) #可形成94332条独立的参与信息
+        x = ueg_df['category_id'].copy()
+        del ueg_df['category_id']
+        ueg_df['category_id'] = x
 
+
+        ueg_label= pd.merge(ueg_df, user_label_df, on=['user_id', 'event_id'])
         x = [1, 4, 7]
         ue_df.drop(ue_df.columns[x], axis=1, inplace=True)
         ue_df.drop_duplicates(keep='first', inplace=True)#剩余94392
