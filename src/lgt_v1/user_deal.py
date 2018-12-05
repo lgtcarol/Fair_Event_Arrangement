@@ -71,12 +71,12 @@ class User(object):
         grouped = ueg_df.groupby(['user_id','group_id', 'venue_id', 'weekday','clock']) #可形成94332条独立的参与信息
         one_hot = pd.get_dummies(ueg_df['category_id'])
         column = ['c_' + str(i) for i in range(1, 7193)]
+        one_hot.columns = column
         one_hot.to_csv("one_hot.csv", encoding="utf-8")
         '''
         x = ueg_df['category_id'].copy()
         del ueg_df['category_id']
         ueg_df['category_id'] = x
-
 
         ueg_label= pd.merge(ueg_df, user_label_df, on=['user_id', 'event_id'])
         x = [1, 4, 7]
@@ -85,8 +85,66 @@ class User(object):
         ue_df = ue_df.reset_index(drop=True)
         #user-group
         ueg_df = pd.merge(ue_df, group_df)
-        ueg_df
 
+
+    @classmethod
+    def sample_df(self, zip_event_df, group_df):
+        #user-event
+        data = defaultdict(list)
+        data['user_id'] = []
+        data['event_id'] = []
+        for u in edge_ue:
+            for e in edge_ue[u]:
+                data['user_id'].append(u)
+                data['event_id'].append(e)
+        print('len(user_index) = %d' % len(data['user_id']))
+        uecol_df = pd.DataFrame(data, columns=['user_id', 'event_id'])
+        # 直接merge试试,之后再考虑删除event_id，因为拼接label矩阵会用
+        ue_df = pd.merge(uecol_df,zip_event_df)
+        ueg_df = pd.merge(ue_df, group_df, left_on=['group_id'])
+        from sklearn.utils import shuffle
+        ueg_df = shuffle(ueg_df)
+        #from here!!
+        ueg_sample = ueg_df.copy()
+        ueg_sample = shuffle(ueg_sample)
+        ueg_sample = ueg_sample.sample(frac=0.3)#39079
+        ueg_sample = ueg_sample.reset_index(drop=True)
+        onehot_sample = pd.get_dummies(ueg_sample['category_id'])
+        column = ['c_' + str(i) for i in range(1, 6346)]
+        onehot_sample.columns = column
+        frames = [ueg_sample, onehot_sample]
+        ueg_sample_onehot= pd.concat(frames, axis=1)
+        return ueg_sample_onehot
+
+    @classmethod
+    def modify_sampledf(self, ueg_sample_onehot):
+        #tran_list = ['user_id', 'event_id', 'group_id', 'venue_id', 'clock']
+        date_deal = []
+        for x in ueg_sample_onehot['date']:
+            tmp = x.split('-')
+            tmp = tmp[0] + tmp[1] + tmp[2]
+            date_deal.append(tmp)
+        ueg_sample_onehot['date'] = date_deal
+        ueg_sample_onehot['date'] = ueg_sample_onehot['date'].astype(float)
+
+        clock_deal = []
+        for y in ueg_sample_onehot['clock']:
+            tmp = y.replace(':', '')
+            clock_deal.append(tmp)
+        ueg_sample_onehot['clock'] = clock_deal
+        ueg_sample_onehot['clock'] = ueg_sample_onehot['clock'].astype(float)
+
+        tran_list = ['event_id', 'group_id', 'venue_id']
+        for col in tran_list:
+            col_float = []
+            for i in ueg_sample_onehot[col].values:
+                tmp = i[2:]
+                col_float.append(tmp)
+            col_float = pd.Series(col_float)
+            col_float = col_float.astype(float)
+            ueg_sample_onehot[col] = col_float
+
+        return ueg_sample_onehot
 
     @classmethod
     def param_analyze(self):
