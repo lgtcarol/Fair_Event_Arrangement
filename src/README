@@ -7,6 +7,7 @@ src为../
 lgt_v1为~/
     中心处理：user_deal.py, event_deal.py, group_deal.py
     交互合并处理：user_group.py, user_event.py
+    lgt_v1_step: 直接从合并好有category（有偏差）的ueg_df作为dataset塞进keras训练
 tmp_vars为../tmp_vars
     每日有效变量读写：graph和vars
 ForTest为../ForTest
