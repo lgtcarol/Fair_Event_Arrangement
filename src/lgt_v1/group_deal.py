@@ -32,6 +32,13 @@ def set_gnode_attr(self):
 class Group(object):
 
     @classmethod
+    def tuple_2_list(self, num_month):
+        num_month_list = []
+        for item, tuple in enumerate(num_month):
+            num_month_list.append(list(num_month[item]))
+        return num_month_list
+
+    @classmethod
     def generate_groupdf(self):
         # 仅是读取节点属性构建DataFrame
         data = defaultdict(list)
@@ -98,13 +105,7 @@ class Group(object):
         #期望列数：16+3=19列
         return self.group_df
 
-    @classmethod
-    def tuple_2_list(self, num_month):
-        num_month_list = []
-        for item, tuple in enumerate(num_month):
-            num_month_list.append(list(num_month[item]))
-        return num_month_list
-
+    # later to be used
     @classmethod
     def enrich_gtags(self):
         e_tags = defaultdict(list)
@@ -138,39 +139,6 @@ class Group(object):
                 g_tags[which_group] = set(g_tags[which_group]) | set(e_tags[node])
         return g_tags
 
-
-
-    def enrich_gtags(self):
-        e_tags = defaultdict(list)
-        g_tags = defaultdict(list)
-        #group标签初始化
-        for node in list(trainG.nodes):
-            if trainG.nodes[node]['node_type'] == 'G':
-                g_tags[node] = group_tags_raw[node]
-
-        for node in list(trainG.nodes):
-            if trainG.nodes[node]['node_type'] == 'E':
-                groupu_tags = defaultdict(int)
-                otheru_tags = defaultdict(int)
-                for item in trainG.nodes[node]['group_u']:  # 遍历成员
-                    for tag in user_tags_raw[item]:  # 遍历并标记成员tag
-                        groupu_tags[tag] += 1.0
-                for item_other in trainG.nodes[node]['other_u']:
-                    for tag_other in user_tags_raw[item_other]:
-                        otheru_tags[tag_other] += 1.0
-                # 选择融入
-                for tag_g in groupu_tags:
-                    if groupu_tags[tag_g] >= 0.2 * trainG.nodes[node]['num_group_u']:
-                        e_tags[node].append(tag_g)
-
-                num_other_u = trainG.nodes[node]['num_of_u'] - trainG.nodes[node]['num_group_u']
-                for tag_o in otheru_tags:
-                    if otheru_tags[tag_o] >= 0.1 * num_other_u:
-                        e_tags[node].append(tag_o)
-                #group_tags = group_tags_raw[events_dealt[node][3]]
-                which_group = g_tags[events_dealt[node][3]]
-                g_tags[which_group] = set(g_tags[which_group]) | set(e_tags[node])
-        return g_tags
 
 
 group_object = Group()

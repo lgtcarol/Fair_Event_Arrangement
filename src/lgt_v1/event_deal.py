@@ -2,6 +2,7 @@ from AnalyData import *
 from CreateNetwork import *
 import pandas as pd
 from datetime import date
+from src.lgt_v1.group_deal import  group_df
 
 '''图中节点属性设置'''
 def set_enode_attr():
@@ -24,7 +25,7 @@ class Event(object):
             return date(int(row[0:4]), int(row[5:7]), int(row[8:10])).weekday() + 1
 
     @classmethod
-    def generate_eventdf(self):
+    def generate_eventdf(self, group_df):
         # 仅是读取节点属性构建DataFrame
         data = defaultdict(list)
         event_id = []  # 作为索引在遍历节点时依次获得
@@ -32,7 +33,7 @@ class Event(object):
         date_time = []
         clock_time = []
         e_group = []
-        for event in events_dealt:
+        for event in list(trainG_E):
             event_id.append(event)
             venue_id.append(events_dealt[event][0])
             date_time.append(events_dealt[event][1])
@@ -44,13 +45,12 @@ class Event(object):
         data['date'] = date_time
         data['weekday'] = (pd.Series(data['date'])).astype(str).apply(self.getWeekday)
         data['clock'] = clock_time
-
         self.event_df = pd.DataFrame(data)
-        self.event_df = self.event_df[self.event_df.event_id.isin(trainG_E)]
+        self.event_df = pd.merge(self.event_df, group_df) #14715,少20
         return self.event_df
 
     @classmethod
-    def analyze_attr(self):
+    def zip_events(self):
         #进行事件归类（group, venue, weekday）得到6239行, 加上clock得到7202条，原事件数是14738压缩51%事件
         grouped = self.event_df.groupby(['group_id', 'venue_id', 'weekday','clock'])
         data = defaultdict(list)
@@ -66,9 +66,9 @@ class Event(object):
             data['category_id'].append(label_cnt)
         sim_event_df = pd.DataFrame(data)
         zip_event_df = pd.merge(self.event_df, sim_event_df, on=['group_id', 'venue_id', 'weekday', 'clock'])
-        return zip_event_df
+        return sim_event_df, zip_event_df
 
 event_object = Event()
 #event_object.set_enode_attr()
-event_df = event_object.generate_eventdf()
-zip_event_df = event_object.analyze_attr()
+event_df = event_object.generate_eventdf(group_df)
+sim_event_df, zip_event_df = event_object.zip_events()
