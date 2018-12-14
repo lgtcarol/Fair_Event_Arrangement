@@ -145,5 +145,7 @@ group_object = Group()
 #group_object.set_gnode_attr()
 group_df = group_object.generate_groupdf()
 group_df = group_object.modify_groupdf()
+#2018/12/14发现有个‘num_e’异常
+group_df.loc[group_df.group_id == 'G_304', 'num_e'] = 38
 
 
