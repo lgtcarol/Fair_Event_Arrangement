@@ -32,17 +32,42 @@ event_df['sum'] = 1
 clock_count = event_df.groupby(['clock'], as_index=False)['sum'].agg({'count': np.sum})
 
 
+
 def clock_bin(data):
-    if data < '10:00':
+    if data < '7:00':
         return 0
-    elif data < '14:00':
+    elif data < '8:00':
         return 1
-    elif data < '18:00':
+    elif data < '9:00':
         return 2
-    elif data < '20:00':
+    elif data < '10:00':
         return 3
-    else:
+    elif data < '11:00':
         return 4
+    elif data < '12:00':
+        return 5
+    elif data < '13:00':
+        return 6
+    elif data < '14:00':
+        return 7
+    elif data < '15:00':
+        return 8
+    elif data < '16:00':
+        return 9
+    elif data < '17:00':
+        return 10
+    elif data < '18:00':
+        return 11
+    elif data < '19:00':
+        return 12
+    elif data < '20:00':
+        return 13
+    elif data < '21:00':
+        return 14
+    elif data < '22:00':
+        return 15
+    else:
+        return 16
 
 
 event_df['clock_range'] = event_df['clock'].map(clock_bin)
