@@ -138,9 +138,92 @@ for i in range(26):
 x = [1]
 u_df.drop(u_df.columns[x], axis=1, inplace=True)
 neg_ueg_df = pd.concat([u_df, e_df], axis=1)
-
 #标识正负样本
 ueg_df['class'] = 1
 neg_ueg_df['class'] = 0
+
+#2018/12/19
+#1. 预处理
 del ueg_df['event_id']
 del neg_ueg_df['event_id']
+del ueg_df['date']
+del neg_ueg_df['date']
+ueg_df['clock_h'] = pd.to_datetime(ueg_df.clock, format="%H:%M")
+ueg_df['clock_h'] = pd.Index(ueg_df['clock_h']).hour
+neg_ueg_df['clock_h'] = pd.to_datetime(neg_ueg_df.clock, format="%H:%M")
+neg_ueg_df['clock_h'] = pd.Index(neg_ueg_df['clock_h']).hour
+del ueg_df['clock']
+del neg_ueg_df['clock']
+def preprosess1_df(ueg_df):
+    catcols = ['user_id', 'group_id', 'venue_id']
+    for col in catcols:
+        col_float = []
+        for i in ueg_df[col].values:
+            tmp = i[2:]
+            col_float.append(tmp)
+        col_float = pd.Series(col_float)
+        col_float = col_float.astype(float)
+        ueg_df[col] = col_float
+    return ueg_df
+ueg_df =preprosess1_df(ueg_df)
+neg_ueg_df = preprosess1_df(neg_ueg_df)# 28cols
+def adjust_colseq(ueg_df):
+    tmp = ueg_df['class'].copy()
+    del ueg_df['class']
+    ueg_df['class'] = tmp
+    return ueg_df
+ueg_df = adjust_colseq(ueg_df)
+neg_ueg_df = adjust_colseq(neg_ueg_df)
+#先不离散化了
+def preprosess2_df(ueg_df):
+    dummies_wd = pd.get_dummies(ueg_df['weekday'], prefix='wd')
+    dummies_cr = pd.get_dummies(ueg_df['clock_range'], prefix='cr')
+    ueg_df = pd.concat([dummies_wd, dummies_cr], axis=1)
+    ueg_df.drop(['weekday','clock_range'], axis=1,inplace=True)
+    return ueg_df
+ueg_df =preprosess2_df(ueg_df)
+neg_ueg_df = preprosess2_df(neg_ueg_df)
+
+#2. 加载模型
+from sklearn.model_selection import train_test_split
+X1_train, X1_test, y1_train, y1_test = train_test_split(ueg_df.ix[:, 0:27], ueg_df.ix[:,27], test_size=0.3, random_state=33)
+X2_train, X2_test, y2_train, y2_test = train_test_split(neg_ueg_df.ix[:, 0:27], neg_ueg_df.ix[:,27], test_size=0.2, random_state=33)
+X_train = pd.concat([X1_train, X2_train], axis=0)
+X_test = pd.concat([X1_test, X2_test], axis=0)
+y_train = pd.concat([y1_train, y2_train], axis=0)
+y_test = pd.concat([y1_test, y2_test], axis=0)
+
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LogisticRegression
+from sklearn.linear_model import SGDClassifier
+# 标准化数据，保证每个维度的特征数据方差为1，均值为0。使得预测结果不会被某些维度过大的特征值而主导。
+ss = StandardScaler()
+X_train = ss.fit_transform(X_train)
+X_test = ss.transform(X_test)
+# 初始化LogisticRegression与SGDClassifier。
+lr = LogisticRegression()
+sgdc = SGDClassifier()
+
+# 调用LogisticRegression中的fit函数/模块用来训练模型参数。
+lr.fit(X_train, y_train)
+# 使用训练好的模型lr对X_test进行预测，结果储存在变量lr_y_predict中。
+lr_y_predict = lr.predict(X_test)
+
+# 调用SGDClassifier中的fit函数/模块用来训练模型参数。
+sgdc.fit(X_train, y_train)
+# 使用训练好的模型sgdc对X_test进行预测，结果储存在变量sgdc_y_predict中。
+sgdc_y_predict = sgdc.predict(X_test)
+
+# 从sklearn.metrics里导入classification_report模块。
+from sklearn.metrics import classification_report
+
+# 使用逻辑斯蒂回归模型自带的评分函数score获得模型在测试集上的准确性结果。
+print ('Accuracy of LR Classifier: %f' % lr.score(X_test, y_test))
+# 利用classification_report模块获得LogisticRegression其他三个指标的结果。
+print (classification_report(y_test, lr_y_predict))
+
+ # 使用随机梯度下降模型自带的评分函数score获得模型在测试集上的准确性结果。
+print ('Accuarcy of SGD Classifier: %f' %  sgdc.score(X_test, y_test))
+# 利用classification_report模块获得SGDClassifier其他三个指标的结果。
+print (classification_report(y_test, sgdc_y_predict, target_names=['N_attended', 'attended']))
+
