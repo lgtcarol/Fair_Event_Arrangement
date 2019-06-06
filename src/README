@@ -8,9 +8,15 @@ lgt_v1为~/
     中心处理：user_deal.py, event_deal.py, group_deal.py
     交互合并处理：user_group.py, user_event.py
     lgt_v1_step: 直接从合并好有category（有偏差）的ueg_df作为dataset塞进keras训练
+    lgt_v2_step: 整理好category并用整个数据集再尝试keras，自己任意修改了隐层参数和epoch
+    NOTE：有些前期处理好的代码是第二部分的工作，只是暂时放那儿节省二次搜索时间
 tmp_vars为../tmp_vars
     每日有效变量读写：graph和vars
 ForTest为../ForTest
     构图过程中的graph和vars保存
     test读取效果
     NOTE：使用时结合AnalyData.py, CreateNetwork.py和Save_Load_info.py
+materials目录：
+    1.便于汇报和后期进展的材料证明
+    2.关键节点或打印信息的保存
+    3.快速笔记备忘等

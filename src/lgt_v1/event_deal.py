@@ -25,6 +25,7 @@ class Event(object):
             return date(int(row[0:4]), int(row[5:7]), int(row[8:10])).weekday() + 1
 
     @classmethod
+    # 此时的event_df已经先和group_df合并了
     def generate_eventdf(self, group_df):
         # 仅是读取节点属性构建DataFrame
         data = defaultdict(list)
@@ -48,7 +49,11 @@ class Event(object):
         self.event_df = pd.DataFrame(data)
         self.event_df = pd.merge(self.event_df, group_df) #14715,少20
         return self.event_df
+        #2018/12/13
+        #丰富事件的属性，如举办人数，举办季度(group角度：group种类)
 
+
+    '''to use later'''
     @classmethod
     def zip_events(self):
         #进行事件归类（group, venue, weekday）得到6239行, 加上clock得到7202条，原事件数是14738压缩51%事件
@@ -67,8 +72,28 @@ class Event(object):
         sim_event_df = pd.DataFrame(data)
         zip_event_df = pd.merge(self.event_df, sim_event_df, on=['group_id', 'venue_id', 'weekday', 'clock'])
         return sim_event_df, zip_event_df
+    #2018/12/13
+    @classmethod
+    def zip2_events(self):
+        #进行事件归类（group, venue, weekday）得到6239行, 加上clock得到7202条，原事件数是14738压缩51%事件
+        grouped = self.event_df.groupby(['venue_id', 'weekday','clock'])
+        data = defaultdict(list)
+        label_cnt = 0
+        for (k1, k2, k3), block in grouped:
+            label_cnt += 1
+            #events = list(block['event_id'])
+            #data['group_id'].append(k1)
+            data['venue_id'].append(k1)
+            data['weekday'].append(k2)
+            data['clock'].append(k3)
+            #data['num_sime'].append(len(events)) #归到该类的事件数
+            data['category_id'].append(label_cnt)
+        sim2_event_df = pd.DataFrame(data)
+        zip2_event_df = pd.merge(self.event_df, sim2_event_df, on=['venue_id', 'weekday', 'clock'])
+        return sim2_event_df, zip2_event_df
 
 event_object = Event()
 #event_object.set_enode_attr()
 event_df = event_object.generate_eventdf(group_df)
 sim_event_df, zip_event_df = event_object.zip_events()
+sim2_event_df,zip2_event_df = event_object.zip2_events()

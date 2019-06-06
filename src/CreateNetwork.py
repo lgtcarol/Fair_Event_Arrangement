@@ -13,6 +13,12 @@ for item in group_tags_raw:
     trainG.add_node(item)
     trainG.nodes[item]['node_type'] = 'G'
 
+'''添加event节点'''
+for item in events_dealt:
+    trainG.add_node(item)
+    trainG.nodes[item]['node_type'] = 'E'
+    trainG.nodes[item]['which_day'] = events_dealt[item][1]
+    trainG.nodes[item]['what_time'] = events_dealt[item][2]
 
 '''添加user-group连边信息'''
 redunt_ugu = set()
@@ -26,13 +32,6 @@ for item_u in user_groups_raw:
         else:
             redunt_ugg.add(item_g)
 
-
-'''添加event节点'''
-for item in events_dealt:
-    trainG.add_node(item)
-    trainG.nodes[item]['node_type'] = 'E'
-    trainG.nodes[item]['which_day'] = events_dealt[item][1]
-    trainG.nodes[item]['what_time'] = events_dealt[item][2]
 
 '''添加event-group连边信息'''
 #debug:竟然因为不熟悉返回值类型和错用工作空间已有的变量item导致出现逻辑错误
@@ -56,7 +55,7 @@ for item_e in event_users_raw:
         else:
             redunt_eue.add(item_e)
 
-'''统计删除没有user的group和event'''
+'''统计删除没有user的group和其发起过的event'''
 empty_group = [] #23个
 for node in list(trainG.nodes):
     if trainG.nodes[node]['node_type']=='G' and trainG.nodes[node]['num_of_u'] == 0:
@@ -65,19 +64,29 @@ for node in list(trainG.nodes):
 for g in empty_group:
     if g in trainG.nodes():
         trainG.remove_node(g)
-
 empty_event = []#831
 for node in empty_group:
     for item in trainG.neighbors(node):
         if trainG.nodes[item]['node_type'] == 'E':
             empty_event.append(item)
+
 # event节点删除
 for e in empty_event:
     if e in trainG.nodes():
         trainG.remove_node(e)
+'''没有event的group统计和（没有user的group已经处理过近23例）'''
+NA_event_group = [] #0
+for x in list(trainG.nodes):
+    if trainG.nodes[x]['node_type'] == 'G':
+        has_event = False
+        for y in list(trainG.neighbors(x)):
+            if trainG.nodes[y]['node_type'] == 'E':
+                has_event = True
+                break
+        if has_event == False:
+            NA_event_group.append(x)
 
-
-'''ATTENTION: 发现存在没有user参加的event'''
+'''插曲: 发现存在没有user参加的event'''
 # 逻辑漏洞在于：原文件中该事件虽然有参与user全都不在trainG
 edges_eu = defaultdict(list)
 for e in list(trainG.nodes()):
@@ -88,6 +97,7 @@ for e in list(trainG.nodes()):
 
 #没有user的event和(没有group的event不存在因为原数据文件events.txt保证了event-group的对应，能添加到trainG上的边也保证了对应关系)
 #并统计发现len(NA_event_group) = 0
+'''统计删除没有user的event和没有group的event'''
 NA_user_event = [] #19
 NA_group_event = [] #0
 for x in list(trainG.nodes):
@@ -107,7 +117,12 @@ for x in list(trainG.nodes):
             NA_user_event.append(x)
         if has_group == False:
             NA_group_event.append(x)
-#没有event的user和没有group的user
+
+for ex in NA_user_event:
+    if ex in trainG.nodes():
+        trainG.remove_node(ex)
+
+'''统计删除没有event的user和没有group的user'''
 NA_event_user = [] #仅仅是统计, 4110
 NA_group_user = [] #不允许, 2228
 for x in list(trainG.nodes):
@@ -128,61 +143,7 @@ for x in list(trainG.nodes):
         if has_group == False:
             NA_group_user.append(x)
 NA_evtgrp_user = set(NA_event_user) & set(NA_group_user) #2204
-
-#没有event的group统计和（没有user的group已经处理过近23例）
-NA_event_group = [] #0
-for x in list(trainG.nodes):
-    if trainG.nodes[x]['node_type'] == 'G':
-        has_event = False
-        for y in list(trainG.neighbors(x)):
-            if trainG.nodes[y]['node_type'] == 'E':
-                has_event = True
-                break
-        if has_event == False:
-            NA_event_group.append(x)
-
-'''总之仍需从图中删除NA_user_event中的节点和NA_group_user中的节点'''
-for e in NA_user_event:
-    if e in trainG.nodes():
-        trainG.remove_node(e)
 for u in NA_group_user:
     if u in trainG.nodes():
         trainG.remove_node(u)
-
-
-'''测试图中各类节点个数'''
-node_u = 0
-node_g = 0
-node_e = 0
-for node in trainG.nodes():
-    if trainG.nodes[node]['node_type'] == 'U':
-        node_u += 1
-    elif trainG.nodes[node]['node_type'] == 'G':
-        node_g += 1
-    elif trainG.nodes[node]['node_type'] == 'E':
-        node_e += 1
-    else:
-        continue
-
-'''测试图中各类连边数目'''
-#group-user和group-event
-edge_gu = 0
-edge_ge = 0
-for g in trainG.nodes():
-    if trainG.nodes[g]['node_type'] == 'G':
-        for item in trainG.neighbors(g):
-            if trainG.nodes[item]['node_type'] == 'U':
-                edge_gu += 1
-            elif trainG.nodes[item]['node_type'] == 'E':
-                edge_ge += 1
-            else:
-                continue
-#event-user
-edge_eu = 0
-for e in trainG.nodes():
-    if trainG.nodes[e]['node_type'] == 'E':
-        for u in trainG.neighbors(e):
-            if trainG.nodes[u]['node_type'] == 'U':
-                edge_eu += 1
-
 

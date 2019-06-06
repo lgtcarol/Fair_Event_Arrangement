@@ -70,7 +70,7 @@ class Group(object):
         data['group_id'] = group_id
         data['num_u'] = num_u_list
         data['num_e'] = num_e_list
-        data['num_venue'] = num_venue_list
+        data['num_venue'] = num_venue_list#该群组举办事件的不同地点数目
         #依次获取每月列 对应 group的事件数列表
         for month in all_month:
             data['m_' + month] = df_num_month[month]
@@ -145,7 +145,7 @@ group_object = Group()
 #group_object.set_gnode_attr()
 group_df = group_object.generate_groupdf()
 group_df = group_object.modify_groupdf()
-#2018/12/14发现有个‘num_e’异常
+#2018/12/14发现有个‘num_e’异常(在用edg_ge时小心)
 group_df.loc[group_df.group_id == 'G_304', 'num_e'] = 38
 
 

@@ -7,8 +7,6 @@ import numpy as np
 from src.lgt_v1.event_deal import *
 
 '''图中user节点属性设置'''
-
-
 def set_unode_attr():
     for node in list(trainG.nodes):
         if trainG.nodes[node]['node_type'] == 'U':
@@ -24,6 +22,34 @@ def set_unode_attr():
 
 class User(object):
 
+    # 思路二
+    @classmethod
+    def generate_uegdf(self, event_df, group_df):
+        # user-event条目
+        data = defaultdict(list)
+        data['user_id'] = []
+        data['event_id'] = []
+        data['u_num_g'] = []
+        data['u_num_e'] = []
+        for u in edge_ue:
+            for e in edge_ue[u]:
+                data['user_id'].append(u)
+                data['event_id'].append(e)
+                x = trainG.nodes[u]['num_of_g']
+                y = trainG.nodes[u]['num_of_e']
+                data['u_num_g'].append(x)
+                data['u_num_e'].append(y)
+        print('len(user_index) = %d' % len(data['user_id']))
+        user_df = pd.DataFrame(data)
+
+        # 符合edge_ue 130358 ,ue中的event估计和trainG_E一样多，经过group_df过滤后event减少导致ue_df减少
+        ueg_df = pd.merge(user_df,event_df)
+        #ueg_df = pd.merge(ue_df, group_df)  # 最终为130264条,26列
+        return user_df,ueg_df
+
+
+    # 思路一：event_df中有category_id时的考虑
+    @classmethod
     def generate_uegdf(self, zip_event_df, group_df):
         # user-event条目
         data = defaultdict(list)
@@ -69,8 +95,8 @@ class User(object):
         ue_df = ue_df.reset_index(drop=True)
         '''
         return ueg_df
-
     @classmethod
+    # feature_v1
     def preprosess_df(self, ueg_df):
         # tran_list = ['user_id', 'event_id', 'group_id', 'venue_id', 'clock']
         date_deal = []
@@ -88,7 +114,7 @@ class User(object):
         ueg_df['clock'] = clock_deal
         ueg_df['clock'] = ueg_df['clock'].astype(float)
 
-        tran_list = ['event_id', 'group_id', 'venue_id']
+        tran_list = ['user_id','event_id', 'group_id', 'venue_id']
         for col in tran_list:
             col_float = []
             for i in ueg_df[col].values:
@@ -99,8 +125,36 @@ class User(object):
             ueg_df[col] = col_float
 
         return ueg_df
+    @classmethod
+    def sample_df(self, zip_event_df, group_df):
+        # user-event
+        data = defaultdict(list)
+        data['user_id'] = []
+        data['event_id'] = []
+        for u in edge_ue:
+            for e in edge_ue[u]:
+                data['user_id'].append(u)
+                data['event_id'].append(e)
+        print('len(user_index) = %d' % len(data['user_id']))
+        uecol_df = pd.DataFrame(data, columns=['user_id', 'event_id'])
+        # 直接merge试试,之后再考虑删除event_id，因为拼接label矩阵会用
+        ue_df = pd.merge(uecol_df, zip_event_df)
+        ueg_df = pd.merge(ue_df, group_df, left_on=['group_id'])
+        from sklearn.utils import shuffle
+        ueg_df = shuffle(ueg_df)
+        # from here!!
+        ueg_sample = ueg_df.copy()
+        ueg_sample = shuffle(ueg_sample)
+        ueg_sample = ueg_sample.sample(frac=0.3)  # 39079
+        ueg_sample = ueg_sample.reset_index(drop=True)
+        onehot_sample = pd.get_dummies(ueg_sample['category_id'])
+        column = ['c_' + str(i) for i in range(1, 6346)]
+        onehot_sample.columns = column
+        frames = [ueg_sample, onehot_sample]
+        ueg_sample_onehot = pd.concat(frames, axis=1)
+        return ueg_sample_onehot
 
-    # later to be used
+    # 点子二
     @classmethod
     def generate_labeldf(self, zip_event_df):
         # 统计u-e关系总数
@@ -132,36 +186,6 @@ class User(object):
         # ueg_onehot = pd.get_dummies(ueg_df['category_id'])#!!所以是因为合并group时导致event需要重新归类，少了6个label
         # zip_ueg_df = pd.concat([ueg_onehot, ueg_df], axis=1)
         return user_label_df
-
-    @classmethod
-    def sample_df(self, zip_event_df, group_df):
-        # user-event
-        data = defaultdict(list)
-        data['user_id'] = []
-        data['event_id'] = []
-        for u in edge_ue:
-            for e in edge_ue[u]:
-                data['user_id'].append(u)
-                data['event_id'].append(e)
-        print('len(user_index) = %d' % len(data['user_id']))
-        uecol_df = pd.DataFrame(data, columns=['user_id', 'event_id'])
-        # 直接merge试试,之后再考虑删除event_id，因为拼接label矩阵会用
-        ue_df = pd.merge(uecol_df, zip_event_df)
-        ueg_df = pd.merge(ue_df, group_df, left_on=['group_id'])
-        from sklearn.utils import shuffle
-        ueg_df = shuffle(ueg_df)
-        # from here!!
-        ueg_sample = ueg_df.copy()
-        ueg_sample = shuffle(ueg_sample)
-        ueg_sample = ueg_sample.sample(frac=0.3)  # 39079
-        ueg_sample = ueg_sample.reset_index(drop=True)
-        onehot_sample = pd.get_dummies(ueg_sample['category_id'])
-        column = ['c_' + str(i) for i in range(1, 6346)]
-        onehot_sample.columns = column
-        frames = [ueg_sample, onehot_sample]
-        ueg_sample_onehot = pd.concat(frames, axis=1)
-        return ueg_sample_onehot
-
     @classmethod
     def param_analyze(self):
         nx.average_clustering(trainG)  # 全图的聚类系数在0.355
@@ -177,9 +201,14 @@ class User(object):
         ave_degree = sum_degree / i
         print("average degree of U: %d" % ave_degree)
 
-
 user_object = User()
-ueg_df = user_object.generate_uegdf(zip_event_df, group_df)
-ueg_df = user_object.preprosess_df(ueg_df)
+user_df, ueg_df = user_object.generate_uegdf(event_df, group_df)
 
-# user.set_unode_attr()
+ueg_df = user_object.preprosess_df(ueg_df)
+#2018/12/13
+#区别在于ueg_df是7192类，ueg2_df是6780类
+ueg2_df = user_object.generate_uegdf(zip2_event_df, group_df)
+ueg2_df = user_object.preprosess_df(ueg2_df)
+
+
+
